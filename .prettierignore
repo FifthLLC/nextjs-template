@@ -1,0 +1,15 @@
+node_modules
+dist
+build
+coverage
+public
+*.config.js
+*.config.ts
+*.config.cjs
+vite.config.js
+tailwind.config.cjs
+postcss.config.cjs
+src/shared/generated
+.next
+pnpm-lock.yaml
+package-lock.json 

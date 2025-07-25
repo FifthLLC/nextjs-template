@@ -1,0 +1,485 @@
+# Storybook Documentation
+
+## Overview
+Storybook serves as the component development environment and documentation system for building UI components in isolation.
+
+## Commands
+```bash
+# Start Storybook development server
+pnpm storybook
+
+# Build Storybook for production
+pnpm build-storybook
+```
+
+## Configuration
+
+### Main Configuration (`.storybook/main.ts`)
+- **Framework:** Next.js with Vite
+- **Addons:** Docs, A11y, Onboarding
+- **Stories Location:** `.storybook/stories/`
+
+### Addons Included
+- **@storybook/addon-docs** - Auto-generated documentation
+- **@storybook/addon-a11y** - Accessibility testing
+- **@chromatic-com/storybook** - Visual testing
+- **@storybook/addon-onboarding** - Getting started guide
+
+## Story Structure
+
+### Basic Story Pattern
+```typescript
+// Button.stories.tsx
+import type { Meta, StoryObj } from '@storybook/react';
+import { Button } from '@shared/components/atoms';
+
+const meta: Meta<typeof Button> = {
+  title: 'Atoms/Button',
+  component: Button,
+  parameters: {
+    layout: 'centered',
+    docs: {
+      description: {
+        component: 'A versatile button component with multiple variants and sizes.',
+      },
+    },
+  },
+  tags: ['autodocs'],
+  argTypes: {
+    variant: {
+      control: { type: 'select' },
+      options: ['primary', 'secondary', 'danger'],
+      description: 'The visual style variant of the button',
+    },
+    size: {
+      control: { type: 'select' },
+      options: ['sm', 'md', 'lg'],
+      description: 'The size of the button',
+    },
+    disabled: {
+      control: { type: 'boolean' },
+      description: 'Whether the button is disabled',
+    },
+  },
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+// Default story
+export const Default: Story = {
+  args: {
+    children: 'Button',
+  },
+};
+
+// Variant stories
+export const Primary: Story = {
+  args: {
+    variant: 'primary',
+    children: 'Primary Button',
+  },
+};
+
+export const Secondary: Story = {
+  args: {
+    variant: 'secondary',
+    children: 'Secondary Button',
+  },
+};
+
+export const Danger: Story = {
+  args: {
+    variant: 'danger',
+    children: 'Danger Button',
+  },
+};
+
+// Size stories
+export const Small: Story = {
+  args: {
+    size: 'sm',
+    children: 'Small Button',
+  },
+};
+
+export const Large: Story = {
+  args: {
+    size: 'lg',
+    children: 'Large Button',
+  },
+};
+
+// State stories
+export const Disabled: Story = {
+  args: {
+    disabled: true,
+    children: 'Disabled Button',
+  },
+};
+
+// Interactive stories
+export const WithIcon: Story = {
+  args: {
+    children: (
+      <>
+        <span>📄</span>
+        Button with Icon
+      </>
+    ),
+  },
+};
+```
+
+### Complex Component Stories
+```typescript
+// SearchBox.stories.tsx
+import type { Meta, StoryObj } from '@storybook/react';
+import { action } from '@storybook/addon-actions';
+import { SearchBox } from '@shared/components/molecules';
+
+const meta: Meta<typeof SearchBox> = {
+  title: 'Molecules/SearchBox',
+  component: SearchBox,
+  parameters: {
+    layout: 'centered',
+  },
+  tags: ['autodocs'],
+  argTypes: {
+    onSearch: { action: 'searched' },
+    onClear: { action: 'cleared' },
+  },
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {
+  args: {
+    placeholder: 'Search...',
+    onSearch: action('onSearch'),
+    onClear: action('onClear'),
+  },
+};
+
+export const WithValue: Story = {
+  args: {
+    value: 'React components',
+    placeholder: 'Search...',
+    onSearch: action('onSearch'),
+    onClear: action('onClear'),
+  },
+};
+
+export const Loading: Story = {
+  args: {
+    placeholder: 'Search...',
+    isLoading: true,
+    onSearch: action('onSearch'),
+  },
+};
+
+// Story with custom controls
+export const Interactive: Story = {
+  args: {
+    placeholder: 'Type to search...',
+    onSearch: action('onSearch'),
+    onClear: action('onClear'),
+  },
+  play: async ({ canvasElement }) => {
+    // Automated interactions for testing
+    const canvas = within(canvasElement);
+    const input = canvas.getByPlaceholderText('Type to search...');
+    
+    await userEvent.type(input, 'test search');
+    await userEvent.click(canvas.getByRole('button'));
+  },
+};
+```
+
+### Form Component Stories
+```typescript
+// UserForm.stories.tsx
+import type { Meta, StoryObj } from '@storybook/react';
+import { UserForm } from '@features/users/components';
+
+const meta: Meta<typeof UserForm> = {
+  title: 'Features/Users/UserForm',
+  component: UserForm,
+  parameters: {
+    layout: 'padded',
+  },
+  tags: ['autodocs'],
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const CreateUser: Story = {
+  args: {
+    mode: 'create',
+    onSubmit: (data) => console.log('Creating user:', data),
+    onCancel: () => console.log('Cancelled'),
+  },
+};
+
+export const EditUser: Story = {
+  args: {
+    mode: 'edit',
+    initialData: {
+      id: '1',
+      name: 'John Doe',
+      email: 'john@example.com',
+      role: 'admin',
+    },
+    onSubmit: (data) => console.log('Updating user:', data),
+    onCancel: () => console.log('Cancelled'),
+  },
+};
+
+export const WithValidationErrors: Story = {
+  args: {
+    mode: 'create',
+    errors: {
+      name: 'Name is required',
+      email: 'Invalid email format',
+    },
+    onSubmit: (data) => console.log('Creating user:', data),
+  },
+};
+```
+
+## Documentation Patterns
+
+### Component Documentation
+```typescript
+// Component with JSDoc comments for auto-documentation
+/**
+ * A versatile button component that supports multiple variants, sizes, and states.
+ * 
+ * @example
+ * ```tsx
+ * <Button variant="primary" size="lg" onClick={handleClick}>
+ *   Click me
+ * </Button>
+ * ```
+ */
+interface ButtonProps {
+  /** The visual style variant of the button */
+  variant?: 'primary' | 'secondary' | 'danger';
+  /** The size of the button */
+  size?: 'sm' | 'md' | 'lg';
+  /** Whether the button is disabled */
+  disabled?: boolean;
+  /** Button content */
+  children: React.ReactNode;
+  /** Click handler */
+  onClick?: () => void;
+}
+
+export const Button: React.FC<ButtonProps> = ({ ... }) => {
+  // Component implementation
+};
+```
+
+### Story Documentation
+```typescript
+export const WithDocumentation: Story = {
+  args: {
+    variant: 'primary',
+    children: 'Documented Button',
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'This story demonstrates the primary button variant with comprehensive documentation.',
+      },
+      source: {
+        code: `
+<Button variant="primary" onClick={handleClick}>
+  Primary Action
+</Button>
+        `,
+      },
+    },
+  },
+};
+```
+
+## Advanced Patterns
+
+### Decorator Usage
+```typescript
+// Global decorator for themes
+export const withTheme = (Story, context) => {
+  const theme = context.globals.theme || 'light';
+  
+  return (
+    <div data-theme={theme} className={`theme-${theme}`}>
+      <Story />
+    </div>
+  );
+};
+
+// Story-specific decorator
+export const WithPadding: Story = {
+  args: {
+    children: 'Padded Content',
+  },
+  decorators: [
+    (Story) => (
+      <div style={{ padding: '2rem', background: '#f5f5f5' }}>
+        <Story />
+      </div>
+    ),
+  ],
+};
+```
+
+### Mock Data Integration
+```typescript
+// Using mock data in stories
+import { createUser } from '@shared/utils/testHelpers';
+
+export const WithMockData: Story = {
+  args: {
+    user: createUser({
+      name: 'Jane Doe',
+      role: 'admin',
+    }),
+  },
+  parameters: {
+    mockData: [
+      {
+        url: '/api/users/1',
+        method: 'GET',
+        status: 200,
+        response: createUser({ id: '1' }),
+      },
+    ],
+  },
+};
+```
+
+### Accessibility Testing
+```typescript
+export const AccessibilityTest: Story = {
+  args: {
+    children: 'Accessible Button',
+  },
+  parameters: {
+    a11y: {
+      config: {
+        rules: [
+          {
+            id: 'color-contrast',
+            enabled: true,
+          },
+          {
+            id: 'focus-order-semantics',
+            enabled: true,
+          },
+        ],
+      },
+    },
+  },
+};
+```
+
+## Organization Guidelines
+
+### Story Naming Convention
+```typescript
+// File: ComponentName.stories.tsx
+// Structure:
+- Default (primary story)
+- Variants (Primary, Secondary, etc.)
+- Sizes (Small, Large, etc.)
+- States (Loading, Disabled, Error, etc.)
+- Interactive (complex interactions)
+- Edge Cases (empty states, long content, etc.)
+```
+
+### Category Structure
+```
+Atoms/
+├── Button
+├── Input
+├── Text
+└── Icon
+
+Molecules/
+├── SearchBox
+├── FormField
+└── Card
+
+Organisms/
+├── Header
+├── Navigation
+└── UserList
+
+Features/
+├── Auth/
+├── Users/
+└── Dashboard/
+```
+
+## Best Practices
+
+### Story Writing Guidelines
+1. **Start Simple:** Begin with a default story
+2. **Cover Variants:** Show all prop combinations
+3. **Include Edge Cases:** Empty states, long content, errors
+4. **Add Interactions:** Use play functions for complex flows
+5. **Document Thoroughly:** Use descriptions and examples
+
+### Component Development Workflow
+1. Create component with TypeScript interfaces
+2. Write basic stories for all variants
+3. Add accessibility tests
+4. Document props and usage
+5. Test interactive scenarios
+6. Review with team
+
+### Performance Considerations
+```typescript
+// Lazy load heavy components
+const HeavyComponent = lazy(() => import('./HeavyComponent'));
+
+export const LazyLoaded: Story = {
+  render: () => (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HeavyComponent />
+    </Suspense>
+  ),
+};
+```
+
+### Testing Integration
+```typescript
+// Stories that can be imported in tests
+export const testingStories = {
+  Default,
+  WithError,
+  Loading,
+};
+
+// In test files
+import { composeStories } from '@storybook/react';
+import * as stories from './Button.stories';
+
+const { Default, WithError } = composeStories(stories);
+```
+
+## Deployment
+Storybook can be built and deployed as a static site:
+```bash
+pnpm build-storybook
+# Output: storybook-static/
+```
+
+Perfect for:
+- Design system documentation
+- Component library showcase
+- Developer onboarding
+- Design-development collaboration 

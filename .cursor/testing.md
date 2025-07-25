@@ -1,0 +1,417 @@
+# Testing Guidelines
+
+## Testing Stack
+- **Jest:** Test runner and assertion library
+- **Testing Library:** React component testing utilities
+- **jsdom:** Browser-like environment for testing
+- **Coverage:** 70% minimum threshold required
+
+## Test File Organization
+
+### File Structure
+```
+src/
+├── shared/
+│   └── components/
+│       └── atoms/
+│           └── 
+│               Button.tsx
+│               
+│           └── __tests__/
+│              └── Button.test.tsx
+├── features/
+│   └── Dashboard/
+│       ├── components/
+│       └── __tests__/
+└── app/
+    └── __tests__/
+        └── page.test.tsx
+```
+
+### Naming Conventions
+- Test files: `ComponentName.test.tsx` or `functionName.test.ts`
+- Test directories: `__tests__/`
+- Mock files: `__mocks__/`
+
+## Testing Commands
+```bash
+# Run all tests
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+
+# Run tests with coverage
+pnpm test:coverage
+```
+
+## Component Testing Patterns
+
+### Basic Component Test
+```typescript
+// Button.test.tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Button } from '../Button';
+
+describe('Button', () => {
+  it('renders with correct text', () => {
+    render(<Button>Click me</Button>);
+    expect(screen.getByRole('button', { name: /click me/i })).toBeInTheDocument();
+  });
+
+  it('calls onClick when clicked', () => {
+    const handleClick = jest.fn();
+    render(<Button onClick={handleClick}>Click me</Button>);
+    
+    fireEvent.click(screen.getByRole('button'));
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies correct variant classes', () => {
+    render(<Button variant="secondary">Secondary</Button>);
+    const button = screen.getByRole('button');
+    expect(button).toHaveClass('secondary'); // Adjust based on your CSS classes
+  });
+
+  it('is disabled when disabled prop is true', () => {
+    render(<Button disabled>Disabled</Button>);
+    expect(screen.getByRole('button')).toBeDisabled();
+  });
+});
+```
+
+### Testing with Custom Hooks
+```typescript
+// useUserData.test.ts
+import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useUserData } from '../useUserData';
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  );
+};
+
+describe('useUserData', () => {
+  it('returns user data when query succeeds', async () => {
+    const { result } = renderHook(() => useUserData('user-123'), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data).toEqual({
+      id: 'user-123',
+      name: 'John Doe',
+      email: 'john@example.com',
+    });
+  });
+});
+```
+
+### Testing Forms and User Interactions
+```typescript
+// UserForm.test.tsx
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { UserForm } from '../UserForm';
+
+describe('UserForm', () => {
+  const mockOnSubmit = jest.fn();
+
+  beforeEach(() => {
+    mockOnSubmit.mockClear();
+  });
+
+  it('submits form with correct data', async () => {
+    const user = userEvent.setup();
+    render(<UserForm onSubmit={mockOnSubmit} />);
+
+    // Fill out form
+    await user.type(screen.getByLabelText(/name/i), 'John Doe');
+    await user.type(screen.getByLabelText(/email/i), 'john@example.com');
+    await user.selectOptions(screen.getByLabelText(/role/i), 'admin');
+
+    // Submit form
+    await user.click(screen.getByRole('button', { name: /submit/i }));
+
+    await waitFor(() => {
+      expect(mockOnSubmit).toHaveBeenCalledWith({
+        name: 'John Doe',
+        email: 'john@example.com',
+        role: 'admin',
+      });
+    });
+  });
+
+  it('shows validation errors for invalid input', async () => {
+    const user = userEvent.setup();
+    render(<UserForm onSubmit={mockOnSubmit} />);
+
+    // Submit without filling required fields
+    await user.click(screen.getByRole('button', { name: /submit/i }));
+
+    expect(screen.getByText(/name is required/i)).toBeInTheDocument();
+    expect(screen.getByText(/email is required/i)).toBeInTheDocument();
+    expect(mockOnSubmit).not.toHaveBeenCalled();
+  });
+});
+```
+
+## Mocking Patterns
+
+### Mocking API Calls
+```typescript
+// __mocks__/api.ts
+export const api = {
+  getUser: jest.fn(),
+  createUser: jest.fn(),
+  updateUser: jest.fn(),
+  deleteUser: jest.fn(),
+};
+
+// In test file
+import { api } from '@infrastructure/api';
+
+jest.mock('@infrastructure/api', () => ({
+  api: require('../__mocks__/api').api,
+}));
+
+describe('UserComponent', () => {
+  beforeEach(() => {
+    (api.getUser as jest.Mock).mockResolvedValue({
+      id: '1',
+      name: 'John Doe',
+      email: 'john@example.com',
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('displays user data', async () => {
+    render(<UserComponent userId="1" />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('John Doe')).toBeInTheDocument();
+    });
+
+    expect(api.getUser).toHaveBeenCalledWith('1');
+  });
+});
+```
+
+### Mocking Next.js Router
+```typescript
+// __mocks__/next/navigation.ts
+export const useRouter = jest.fn(() => ({
+  push: jest.fn(),
+  replace: jest.fn(),
+  back: jest.fn(),
+  forward: jest.fn(),
+  refresh: jest.fn(),
+  prefetch: jest.fn(),
+}));
+
+export const useSearchParams = jest.fn(() => new URLSearchParams());
+export const usePathname = jest.fn(() => '/');
+
+// In test file
+import { useRouter } from 'next/navigation';
+
+jest.mock('next/navigation', () => ({
+  ...require('../__mocks__/next/navigation'),
+}));
+
+describe('NavigationComponent', () => {
+  it('navigates to correct page on click', () => {
+    const pushMock = jest.fn();
+    (useRouter as jest.Mock).mockReturnValue({
+      push: pushMock,
+    });
+
+    render(<NavigationComponent />);
+    fireEvent.click(screen.getByText('Go to Profile'));
+
+    expect(pushMock).toHaveBeenCalledWith('/profile');
+  });
+});
+```
+
+### Mocking Zustand Stores
+```typescript
+// __mocks__/stores/userStore.ts
+export const useUserStore = jest.fn();
+
+// In test file
+import { useUserStore } from '@infrastructure/stores/userStore';
+
+jest.mock('@infrastructure/stores/userStore', () => ({
+  useUserStore: require('../__mocks__/stores/userStore').useUserStore,
+}));
+
+describe('UserProfile', () => {
+  beforeEach(() => {
+    (useUserStore as jest.Mock).mockReturnValue({
+      user: { id: '1', name: 'John Doe' },
+      isAuthenticated: true,
+      logout: jest.fn(),
+    });
+  });
+
+  it('displays user information', () => {
+    render(<UserProfile />);
+    expect(screen.getByText('John Doe')).toBeInTheDocument();
+  });
+});
+```
+
+## Test Utilities
+
+### Custom Render Function
+```typescript
+// __tests__/utils/testUtils.tsx
+import { render, RenderOptions } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactElement } from 'react';
+
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+      mutations: {
+        retry: false,
+      },
+    },
+  });
+
+interface AllTheProvidersProps {
+  children: React.ReactNode;
+}
+
+const AllTheProviders = ({ children }: AllTheProvidersProps) => {
+  const queryClient = createTestQueryClient();
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  );
+};
+
+const customRender = (
+  ui: ReactElement,
+  options?: Omit<RenderOptions, 'wrapper'>
+) => render(ui, { wrapper: AllTheProviders, ...options });
+
+export * from '@testing-library/react';
+export { customRender as render };
+```
+
+### Test Data Factories
+```typescript
+// __tests__/utils/factories.ts
+export const createUser = (overrides: Partial<User> = {}): User => ({
+  id: '1',
+  name: 'John Doe',
+  email: 'john@example.com',
+  role: 'user',
+  createdAt: new Date().toISOString(),
+  ...overrides,
+});
+
+export const createApiResponse = <T>(data: T): ApiResponse<T> => ({
+  data,
+  message: 'Success',
+  status: 200,
+});
+
+// Usage in tests
+const testUser = createUser({ name: 'Jane Doe', role: 'admin' });
+```
+
+## Testing Best Practices
+
+### Test Structure (AAA Pattern)
+```typescript
+describe('ComponentName', () => {
+  it('should do something when condition', () => {
+    // Arrange
+    const mockFn = jest.fn();
+    const props = { onClick: mockFn };
+
+    // Act
+    render(<Component {...props} />);
+    fireEvent.click(screen.getByRole('button'));
+
+    // Assert
+    expect(mockFn).toHaveBeenCalled();
+  });
+});
+```
+
+### Testing Accessibility
+```typescript
+import { axe, toHaveNoViolations } from 'jest-axe';
+
+expect.extend(toHaveNoViolations);
+
+describe('Button accessibility', () => {
+  it('should not have accessibility violations', async () => {
+    const { container } = render(<Button>Click me</Button>);
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+});
+```
+
+### Coverage Requirements
+- **Statements:** 70% minimum
+- **Branches:** 70% minimum  
+- **Functions:** 70% minimum
+- **Lines:** 70% minimum
+
+### What to Test
+✅ **Test:**
+- Component rendering
+- User interactions
+- Props behavior
+- State changes
+- Error boundaries
+- API integration
+- Business logic
+
+❌ **Don't Test:**
+- Implementation details
+- Third-party library internals
+- CSS styles (unless critical)
+- Mocked functions' internals
+
+### Test Naming
+```typescript
+// Good test names
+it('displays error message when API call fails')
+it('enables submit button when form is valid')
+it('redirects to login page when user is not authenticated')
+
+// Poor test names
+it('works correctly')
+it('test button')
+it('should render')
+``` 

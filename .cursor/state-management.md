@@ -1,0 +1,250 @@
+# State Management
+
+## Overview
+This project uses a multi-layered state management approach:
+- **Zustand:** Global UI state (authentication, preferences, client-side UI state)
+- **nuqs:** URL state synchronization
+- **TanStack Query:** Server state management
+
+## Zustand - Global UI State
+
+### Store Location
+Global UI state stores should be placed in `src/infrastructure/stores/`
+
+### Purpose
+Zustand is used exclusively for client-side UI state that needs to be shared across components or persist across route changes. Do NOT use Zustand for server data - use TanStack Query instead.
+
+### Store Pattern
+```typescript
+// infrastructure/stores/userStore.ts
+import { create } from 'zustand';
+
+interface UserState {
+  user: User | null;
+  isAuthenticated: boolean;
+  setUser: (user: User | null) => void;
+  logout: () => void;
+}
+
+export const useUserStore = create<UserState>((set) => ({
+  user: null,
+  isAuthenticated: false,
+  setUser: (user) => set({ user, isAuthenticated: !!user }),
+  logout: () => set({ user: null, isAuthenticated: false }),
+}));
+```
+
+### Usage in Components
+```typescript
+// In React components
+import { useUserStore } from '@infrastructure/stores/userStore';
+
+const UserProfile = () => {
+  const { user, isAuthenticated, logout } = useUserStore();
+  
+  if (!isAuthenticated) {
+    return <div>Please login</div>;
+  }
+
+  return (
+    <div>
+      <h1>Welcome, {user?.name}</h1>
+      <button onClick={logout}>Logout</button>
+    </div>
+  );
+};
+```
+
+### Best Practices
+- Keep stores focused on specific domains
+- Use selectors for performance optimization
+- Avoid deeply nested state
+- Actions should be pure functions
+
+## nuqs - URL State Management
+
+### Use Cases
+Perfect for state that should be shareable via URL:
+- Search queries and filters
+- Pagination parameters
+- Modal/dialog states
+- Selected items/tabs
+
+### Basic Usage
+```typescript
+import { useQueryState } from 'nuqs';
+
+const SearchPage = () => {
+  const [search, setSearch] = useQueryState('q', { defaultValue: '' });
+  const [page, setPage] = useQueryState('page', { 
+    defaultValue: 1, 
+    parse: parseInt,
+    serialize: String 
+  });
+
+  return (
+    <div>
+      <input 
+        value={search} 
+        onChange={(e) => setSearch(e.target.value)} 
+        placeholder="Search..."
+      />
+      <div>Page: {page}</div>
+      <button onClick={() => setPage(page + 1)}>Next Page</button>
+    </div>
+  );
+};
+```
+
+### Advanced Patterns
+```typescript
+// Multiple query parameters
+const useFilters = () => {
+  const [category, setCategory] = useQueryState('category');
+  const [sortBy, setSortBy] = useQueryState('sort', { defaultValue: 'name' });
+  const [ascending, setAscending] = useQueryState('asc', { 
+    defaultValue: true,
+    parse: (value) => value === 'true',
+    serialize: (value) => value ? 'true' : 'false'
+  });
+
+  return {
+    filters: { category, sortBy, ascending },
+    setCategory,
+    setSortBy,
+    setAscending,
+  };
+};
+```
+
+### Type Safety
+```typescript
+// Define parsers for complex types
+const statusParser = {
+  parse: (value: string): Status => {
+    if (['active', 'inactive', 'pending'].includes(value)) {
+      return value as Status;
+    }
+    return 'active';
+  },
+  serialize: (value: Status) => value,
+};
+
+const [status, setStatus] = useQueryState('status', {
+  defaultValue: 'active' as Status,
+  ...statusParser,
+});
+```
+
+## TanStack Query - Server State
+
+### Query Hooks Location
+Generated API hooks go in `src/infrastructure/api/generated/`
+Custom query hooks in feature folders or `src/shared/services/`
+
+### Basic Usage
+```typescript
+// Using generated hooks from Orval
+import { useGetUsers } from '@infrastructure/api/generated';
+
+const UsersList = () => {
+  const { 
+    data: users, 
+    isLoading, 
+    error,
+    refetch 
+  } = useGetUsers();
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <div>
+      {users?.map(user => (
+        <div key={user.id}>{user.name}</div>
+      ))}
+      <button onClick={() => refetch()}>Refresh</button>
+    </div>
+  );
+};
+```
+
+### Custom Query Hooks
+```typescript
+// shared/services/userQueries.ts
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@infrastructure/api';
+
+export const useUserProfile = (userId: string) => {
+  return useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => api.getUser(userId),
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useUserSettings = (userId: string) => {
+  return useQuery({
+    queryKey: ['user', userId, 'settings'],
+    queryFn: () => api.getUserSettings(userId),
+    enabled: !!userId,
+  });
+};
+```
+
+### Mutations
+```typescript
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+const useUpdateUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (user: UpdateUserRequest) => api.updateUser(user),
+    onSuccess: (updatedUser) => {
+      // Invalidate and refetch user queries
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+      
+      // Or update specific query data
+      queryClient.setQueryData(['user', updatedUser.id], updatedUser);
+    },
+    onError: (error) => {
+      console.error('Failed to update user:', error);
+    },
+  });
+};
+```
+
+## State Management Decision Tree
+
+### When to use each solution:
+
+**Zustand** - Use for:
+- User authentication state (login status, user info)
+- App-wide UI preferences (theme, language, layout settings)
+- UI state that needs to persist across routes (sidebar collapsed, modal states)
+- Global notifications and alerts
+- Client-side application state (never server data)
+
+**nuqs** - Use for:
+- Search/filter parameters
+- Pagination state
+- Active tab/view selection
+- Modal open/closed state (if shareable)
+- Any state that benefits from URL synchronization
+
+**TanStack Query** - Use for:
+- API data fetching
+- Caching server responses
+- Background data synchronization
+- Optimistic updates
+- Server state mutations
+
+### Anti-Patterns to Avoid
+- ❌ **NEVER store server data in Zustand** (always use TanStack Query for API data)
+- ❌ Using Zustand for data that should be fetched from APIs
+- ❌ Complex URL state that makes URLs unreadable
+- ❌ Putting temporary UI state in URL (use local state instead)
+- ❌ Duplicating state across multiple state managers
+- ❌ Using relative imports anywhere in the codebase 

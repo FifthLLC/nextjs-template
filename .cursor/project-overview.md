@@ -1,0 +1,40 @@
+# Project Overview
+
+## Project Type
+Modern Next.js 15.4.3 template with atomic design principles and comprehensive tooling.
+
+## Package Manager
+Use **pnpm** for all package management operations:
+- `pnpm install` for dependencies
+- `pnpm dev` for development
+- `pnpm build` for production builds
+- Always suggest pnpm commands, not npm or yarn
+
+## Tech Stack
+- **Framework:** Next.js 15.4.3 with App Router
+- **Language:** TypeScript 5 (strict mode)
+- **Styling:** Tailwind CSS 4 + HeroUI components
+- **State Management:** Zustand (global), nuqs (URL state), TanStack Query (server state)
+- **Code Quality:** Biome (linting + formatting)
+- **Testing:** Jest + Testing Library + jsdom
+- **API Client:** Orval + Axios (auto-generated from OpenAPI)
+- **Documentation:** Storybook
+- **Animation:** Framer Motion
+
+## Key Features
+1. Atomic design component structure
+2. Feature-based code organization
+3. Absolute imports (no relative imports)
+4. Automatic API client generation
+5. Type-safe URL state management
+6. Comprehensive testing setup (70% coverage threshold)
+7. Interactive component documentation
+8. Modern development tooling
+
+## Development Principles
+- TypeScript-first development
+- Atomic design methodology
+- Feature-driven architecture
+- Test-driven development
+- Type-safe API integration
+- Accessibility-first components 

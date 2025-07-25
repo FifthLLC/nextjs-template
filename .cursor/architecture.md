@@ -1,0 +1,73 @@
+# Architecture & Structure
+
+## Project Structure
+```
+src/
+├── app/                    # Next.js App Router pages
+├── features/              # Feature-based modules
+├── shared/               # Shared components and utilities
+│   ├── components/       # Reusable UI components
+│   │   ├── atoms/        # Basic building blocks
+│   │   ├── molecules/    # Simple combinations of atoms
+│   │   └── organisms/    # Complex components with business logic
+│   ├── utils/           # Utility functions and helpers
+│   └── services/        # Shared business logic and API services
+├── infrastructure/       # External services and configuration
+│   ├── api/             # API clients and generated code
+│   └── stores/          # Global state management
+```
+
+## Path Aliases
+Use these TypeScript path aliases consistently:
+- `@/*` - src directory
+- `@core/*` - src/app/core
+- `@features/*` - src/features
+- `@shared/*` - src/shared
+- `@infrastructure/*` - src/infrastructure
+
+## File Naming Conventions
+- **Components:** PascalCase (Button.tsx, UserProfile.tsx)
+- **Utilities:** camelCase (formatDate.ts, apiHelpers.ts)
+- **Types:** PascalCase with .types.ts suffix
+- **Tests:** Same name as tested file with .test.tsx/.test.ts
+- **Stories:** Same name as component with .stories.tsx
+
+## Feature Organization
+Each feature should be self-contained:
+```
+features/
+└── FeatureName/
+    ├── components/       # Feature-specific components
+    ├── hooks/           # Feature-specific hooks
+    ├── types/           # Feature-specific types
+    ├── utils/           # Feature-specific utilities
+    └── index.ts         # Feature exports
+```
+
+## Import Organization
+**IMPORTANT: Use ONLY absolute imports - no relative imports allowed.**
+
+Follow this import order (handled by Biome):
+1. React and Next.js imports
+2. External library imports
+3. Internal imports (using path aliases)
+4. CSS imports (always last)
+
+### Absolute Import Examples
+```typescript
+// ✅ Good - Use absolute imports with aliases
+import { Button } from '@shared/components/atoms';
+import { UserForm } from '@features/users/components';
+import { api } from '@infrastructure/api';
+
+// ❌ Bad - Never use relative imports
+import { Button } from '../../../shared/components/atoms';
+import { UserForm } from '../../components/UserForm';
+import { api } from '../api';
+```
+
+## Component Placement Rules
+- **Atoms:** Basic, reusable components (Button, Input, Text)
+- **Molecules:** Simple combinations (SearchBox, FormField)
+- **Organisms:** Complex business logic components (Header, ProductList)
+- **Shared vs Feature:** If used in multiple features → shared, if feature-specific → feature folder 
