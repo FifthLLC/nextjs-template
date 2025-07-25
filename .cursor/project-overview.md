@@ -13,7 +13,7 @@ Use **pnpm** for all package management operations:
 ## Tech Stack
 - **Framework:** Next.js 15.4.3 with App Router
 - **Language:** TypeScript 5 (strict mode)
-- **Styling:** Tailwind CSS 4 + HeroUI components
+- **Styling:** Tailwind CSS 4 + HeroUI components, if a html tag has more than three class names, create a `style.ts` file to manage those styles.
 - **State Management:** Zustand (global), nuqs (URL state), TanStack Query (server state)
 - **Code Quality:** Biome (linting + formatting)
 - **Testing:** Jest + Testing Library + jsdom
