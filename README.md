@@ -126,7 +126,6 @@ pnpm build-storybook      # Build Storybook for production
 The project includes comprehensive testing setup:
 
 - **Unit Tests** - Component and utility testing
-- **Integration Tests** - Feature testing
 - **Coverage Thresholds** - 70% minimum coverage required
 - **Test Location** - Tests can be placed in `__tests__` directories or as `*.test.tsx` files
 
