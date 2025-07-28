@@ -38,7 +38,8 @@ Use these TypeScript path aliases consistently:
 - **Stories:** Same name as component with .stories.tsx
 
 ## Feature Organization
-Each feature should be self-contained:
+Each feature (new page) should be self-contained:
+New Pages should be created under features folder.
 ```
 features/
 └── FeatureName/
