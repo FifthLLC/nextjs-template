@@ -210,6 +210,16 @@ pnpm build
 
 The application can be deployed to any platform that supports Node.js applications.
 
+## 🤖 Cursor AI Agent
+
+This project includes Cursor AI agent configuration files in the `.cursor/` directory. These files contain setup rules and project-specific guidance for AI assistance. 
+
+**It's recommended to use Cursor agents** when working on this project as they:
+- Understand the project's architecture and conventions
+- Follow established code patterns and best practices
+- Respect the configured linting and formatting rules
+- Provide context-aware suggestions aligned with the tech stack
+
 ## 📚 Learn More
 
 - [Next.js Documentation](https://nextjs.org/docs)
